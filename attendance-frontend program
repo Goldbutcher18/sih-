@@ -1,0 +1,103 @@
+```python
+# app.py (Streamlit UI)
+import streamlit as st
+import requests
+import cv2
+import face_recognition
+import numpy as np
+from datetime import datetime, timedelta
+import qrcode
+from io import BytesIO
+
+BACKEND_URL = "http://127.0.0.1:5000"
+
+st.set_page_config(page_title="Smart Attendance", layout="wide", page_icon="🎓")
+
+# ---------------- CSS ----------------
+st.markdown("""
+<style>
+.main { background: linear-gradient(135deg,#e0f7fa,#ffffff); font-family:'Segoe UI'; }
+h1,h2,h3 { color:#0f4c75; font-weight:700; }
+.card { background:rgba(255,255,255,0.8); border-radius:16px; padding:20px; margin:10px 0; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- Navigation ----------------
+page = st.sidebar.radio("📌 Navigation", ["🏠 Dashboard", "📝 Register Face", "📷 Mark Attendance", "📊 Reports"])
+
+# ---------------- Dashboard ----------------
+if page == "🏠 Dashboard":
+    st.markdown("<div class='card'><h2>🎓 Smart Attendance Dashboard</h2>", unsafe_allow_html=True)
+    st.write("Welcome to the Smart Attendance System for **Bharti Vidyapeeth**.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------------- Register Face ----------------
+elif page == "📝 Register Face":
+    st.markdown("<div class='card'><h2>📝 Register Face</h2>", unsafe_allow_html=True)
+    name = st.text_input("Enter your full name")
+    email = st.text_input("Enter your email")
+    role = st.selectbox("Role", ["Student", "Teacher"])
+
+    if st.button("📷 Capture & Register Face"):
+        cap = cv2.VideoCapture(0)
+        ret, frame = cap.read()
+        cap.release()
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        encodings = face_recognition.face_encodings(rgb)
+
+        if encodings:
+            encoding = encodings[0].tolist()
+            res = requests.post(f"{BACKEND_URL}/register", json={
+                "name": name, "email": email, "role": role, "encoding": encoding
+            })
+            if res.status_code == 200:
+                st.success(res.json()["message"])
+            else:
+                st.error("Error registering face")
+        else:
+            st.error("No face detected")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------------- Mark Attendance ----------------
+elif page == "📷 Mark Attendance":
+    st.markdown("<div class='card'><h2>📷 Mark Attendance</h2>", unsafe_allow_html=True)
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    encodings = face_recognition.face_encodings(rgb)
+
+    if encodings:
+        encoding = encodings[0].tolist()
+        res = requests.post(f"{BACKEND_URL}/mark", json={"encoding": encoding})
+        if res.status_code == 200:
+            st.success(res.json()["message"])
+        else:
+            st.error("Face not recognized")
+    else:
+        st.error("No face detected")
+
+    # Session QR with expiry
+    expiry_time = datetime.now() + timedelta(seconds=30)
+    qr = qrcode.QRCode(box_size=6, border=2)
+    qr.add_data(f"Session-{expiry_time.strftime('%H:%M:%S')}")
+    qr.make(fit=True)
+    img = qr.make_image(fill="black", back_color="white")
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    st.image(buf.getvalue(), width=200, caption=f"⏳ QR expires at {expiry_time.strftime('%H:%M:%S')}")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------------- Reports ----------------
+elif page == "📊 Reports":
+    st.markdown("<div class='card'><h2>📊 Attendance Reports</h2>", unsafe_allow_html=True)
+    res = requests.get(f"{BACKEND_URL}/records")
+    if res.status_code == 200:
+        records = res.json()
+        st.dataframe(records)
+    else:
+        st.error("Unable to fetch records")
+    st.markdown("</div>", unsafe_allow_html=True)
+```
