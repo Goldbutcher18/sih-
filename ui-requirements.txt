@@ -1,0 +1,7 @@
+streamlit
+requests
+face-recognition
+opencv-python
+numpy
+qrcode
+Pillow
