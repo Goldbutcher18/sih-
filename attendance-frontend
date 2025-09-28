@@ -1,0 +1,6 @@
+attendance-ui/
+│
+├── app.py               # Streamlit frontend
+├── assets/              # logos, css, images
+├── requirements.txt     # Python dependencies
+└── README.md
