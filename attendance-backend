@@ -1,0 +1,10 @@
+attendance-backend/
+│
+├── app.py               # Flask/FastAPI backend API
+├── face_utils.py        # Face recognition utilities
+├── database/            
+│   └── attendance.db    # SQLite DB
+├── models/              
+│   └── encodings.pkl    # Stored face encodings
+├── requirements.txt     # Python dependencies
+└── README.md
